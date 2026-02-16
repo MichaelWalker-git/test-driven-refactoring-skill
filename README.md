@@ -6,6 +6,8 @@ A comprehensive Claude Code skill for building test coverage that enables confid
 
 This skill provides a proven 6-phase methodology for taking an application from zero or minimal test coverage to comprehensive E2E test suites with parallel execution capabilities. Built from real-world experience implementing 497 E2E tests across a complex React/TypeScript property management application.
 
+**NEW:** Now supports **Chrome DevTools MCP** for 3-5x faster test execution with direct browser control via the Model-Context-Protocol.
+
 ## What This Skill Provides
 
 ### 6-Phase Methodology
@@ -19,12 +21,66 @@ This skill provides a proven 6-phase methodology for taking an application from 
 
 ### Key Features
 
+- **Chrome DevTools MCP Integration**: 3-5x faster testing with direct browser control (NEW) ⚡
 - **Parallel Agent Strategy**: Coordinate multiple Claude agents to create tests 85-93% faster
 - **5-Category Test Pattern**: Navigation, CRUD, Workflows, Interactions, Edge Cases
-- **Complete Templates**: Ready-to-use test patterns for all test types
+- **Complete Templates**: Ready-to-use test patterns for all test types (MCP + Cypress)
 - **Refactoring Safety Protocols**: Red-Green-Refactor cycle with test-first approach
 - **CI/CD Integration**: GitHub Actions, GitLab CI, and Jenkins examples
 - **Best Practices**: Comprehensive dos and don'ts for test creation
+
+### Testing Approaches
+
+This skill supports two testing approaches:
+
+#### 1. Chrome DevTools MCP (Recommended) ⚡
+
+**Why it's faster:**
+- Direct browser control via Chrome DevTools Protocol
+- No test runner overhead (no compilation, no separate process)
+- AI-native - Claude uses MCP tools directly
+- Immediate feedback loop
+- 26 specialized browser automation tools built-in
+
+**Installation:**
+```json
+// Add to ~/.claude/mcp.json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    }
+  }
+}
+```
+
+**Requirements:**
+- Node.js v20.19+ LTS
+- Chrome (stable or newer)
+- MCP server configuration
+
+**Test Pattern:**
+```
+# Imperative testing with MCP tools
+navigate_page http://localhost:3000/users
+fill_form {"name": "John", "email": "john@test.com"}
+click [data-testid="submit-button"]
+wait_for .success-message
+take_screenshot "user-created.png"
+```
+
+#### 2. Cypress (Alternative)
+
+Traditional E2E testing framework with test files and runner.
+
+**When to use:**
+- Need video recording
+- Want traditional test file structure
+- Team familiar with Cypress
+- Existing Cypress infrastructure
+
+Both approaches are fully documented in the skill with complete templates and examples.
 
 ## Installation
 
@@ -144,12 +200,21 @@ The skill generates comprehensive documentation:
 
 ## Testing Frameworks Supported
 
-Primary focus on **Cypress** E2E testing, but patterns apply to:
-- Jest + React Testing Library
+**Primary Approach: Chrome DevTools MCP** (Recommended for fastest turnaround)
+- Direct browser automation via MCP tools
+- No framework overhead
+- 26 built-in automation tools
+- Performance tracing and network inspection
+
+**Alternative: Traditional Test Frameworks**
+- **Cypress** (fully documented with templates)
 - Playwright
+- Jest + React Testing Library
 - Selenium
 - TestCafe
 - Any modern E2E framework
+
+The skill provides comprehensive templates for both MCP and Cypress approaches.
 
 ## Best Practices
 
@@ -210,9 +275,17 @@ Track these KPIs to measure testing effectiveness:
 
 ## Requirements
 
+**For MCP Approach (Recommended):**
+- Claude Code CLI with MCP support
+- Node.js v20.19+ LTS
+- Chrome browser (stable or newer)
+- MCP server configuration (`~/.claude/mcp.json`)
+- Git for version control
+
+**For Cypress Approach:**
 - Claude Code CLI
 - Node.js 18+
-- Modern E2E testing framework (Cypress recommended)
+- Cypress testing framework
 - Git for version control
 - CI/CD platform (GitHub Actions, GitLab CI, Jenkins)
 

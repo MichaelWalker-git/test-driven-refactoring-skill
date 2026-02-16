@@ -43,6 +43,106 @@ This methodology ensures:
 
 ---
 
+## Testing Approaches
+
+This methodology supports two testing approaches, with Chrome DevTools MCP recommended for faster turnaround:
+
+### Approach 1: Chrome DevTools MCP (Recommended) ⚡
+
+**Why MCP is faster:**
+- Direct browser control via Chrome DevTools Protocol
+- No test runner overhead (no compilation, no separate process)
+- AI-native - Claude uses tools directly
+- Immediate feedback loop
+- 26 specialized browser automation tools
+- Built-in performance tracing and network inspection
+
+**Installation:**
+```json
+// Add to your MCP configuration (e.g., ~/.claude/mcp.json)
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    }
+  }
+}
+```
+
+**Requirements:**
+- Node.js v20.19+ LTS
+- Chrome (stable or newer)
+- npm
+
+**Available Tools (26 total):**
+- **Input**: click, drag, fill, fill_form, handle_dialog, hover, press_key, upload_file
+- **Navigation**: navigate_page, new_page, select_page, list_pages, close_page, wait_for
+- **Emulation**: emulate device modes, resize_page
+- **Performance**: record traces, analyze insights, fetch CrUX data
+- **Network**: inspect requests, analyze network activity
+- **Debugging**: take screenshots, evaluate JavaScript, review console messages
+
+**Test Pattern:**
+```typescript
+// MCP tests are written imperatively using Claude's MCP tools
+// Example: Navigation test
+1. navigate_page to http://localhost:3000/properties
+2. wait_for selector "[data-testid='properties-heading']"
+3. Take screenshot to verify page loaded
+4. Evaluate JavaScript to check page state
+
+// Example: CRUD test
+1. navigate_page to http://localhost:3000/users/new
+2. fill_form with user data {"name": "John", "email": "john@example.com"}
+3. click on "[data-testid='submit-button']"
+4. wait_for selector ".success-message"
+5. Evaluate JavaScript to verify data was created
+```
+
+**Advantages:**
+- **3-5x faster** than traditional test runners
+- Write tests conversationally with Claude
+- Real-time debugging and inspection
+- Performance metrics built-in
+- No configuration overhead
+- Screenshot capabilities
+- Network request monitoring
+
+### Approach 2: Cypress (Alternative)
+
+**When to use Cypress:**
+- Need video recording of tests
+- Want traditional test file structure
+- Team familiar with Cypress
+- Need time-travel debugging
+- Existing Cypress infrastructure
+
+**Installation:**
+```bash
+npm install --save-dev cypress
+npx cypress open
+```
+
+**Test Pattern:**
+```typescript
+describe('Navigation Tests', () => {
+  beforeEach(() => {
+    cy.login();
+  });
+
+  it('should navigate to properties', () => {
+    cy.visit('/properties');
+    cy.url().should('include', '/properties');
+    cy.contains('Properties').should('be.visible');
+  });
+});
+```
+
+**Note:** This skill provides patterns for both approaches. MCP examples are shown first, with Cypress alternatives included.
+
+---
+
 ## Phase 1: Audit & Roadmap
 
 ### Objective
@@ -334,9 +434,26 @@ Build comprehensive test suite using parallel agent strategy for maximum efficie
 
 ### Process
 
-#### 3.1 Create Test File Structure
+#### 3.1 Setup Testing Infrastructure
 
+**For MCP Approach:**
 ```bash
+# Ensure MCP server is configured
+cat ~/.claude/mcp.json
+
+# Start your dev server
+npm run dev
+
+# Tests will be run interactively by Claude using MCP tools
+# No test file structure needed - tests are executed imperatively
+```
+
+**For Cypress Approach:**
+```bash
+# Install Cypress
+npm install --save-dev cypress
+
+# Create test structure
 cypress/e2e/
 ├── navigation/       # Route tests
 ├── crud/             # CRUD operation tests
@@ -347,98 +464,461 @@ cypress/e2e/
 
 #### 3.2 Parallel Implementation Strategy
 
-**Launch 5 Concurrent Agents:**
+**MCP Approach (Recommended):**
+
+Launch 5 concurrent Claude agents, each using MCP tools to test a category:
 
 ```typescript
-// Use Claude's Task tool to launch parallel agents
-
-// Agent 1: Navigation Tests
+// Agent 1: Navigation Tests (MCP)
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    Implement navigation tests for [APP_NAME].
+    Test all navigation routes for [APP_NAME] using Chrome DevTools MCP.
 
     Requirements:
-    - Test all routes from the roadmap
-    - Verify URL changes
-    - Check page content loads
-    - Validate authentication guards
-    - Follow the pattern from TESTING_STRATEGY.md
+    - Use navigate_page to visit each route from the roadmap
+    - Use wait_for to verify page elements load
+    - Take screenshots for verification
+    - Use evaluate to check page state
+    - Document results in tests/navigation-results.md
 
-    Create tests in cypress/e2e/navigation/ directory.
+    For each route:
+    1. navigate_page to http://localhost:3000[ROUTE]
+    2. wait_for key page elements
+    3. Verify URL and heading
+    4. Take screenshot
+    5. Check for console errors
+
+    Routes to test: [LIST FROM ROADMAP]
   `
 });
 
-// Agent 2: CRUD Tests
+// Agent 2: CRUD Tests (MCP)
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    Implement CRUD tests for [APP_NAME].
+    Test CRUD operations for [APP_NAME] using Chrome DevTools MCP.
 
     Requirements:
     - Test Create, Read, Update, Delete for all entities
-    - Mock API responses
-    - Verify success messages
-    - Check data persistence
-    - Follow the pattern from TESTING_STRATEGY.md
+    - Use fill_form for data entry
+    - Use click for button interactions
+    - Use wait_for for async operations
+    - Verify success messages and state changes
+    - Document results in tests/crud-results.md
 
-    Create tests in cypress/e2e/crud/ directory.
+    For each entity:
+    CREATE:
+    1. navigate_page to entity creation page
+    2. fill_form with test data
+    3. click submit button
+    4. wait_for success message
+    5. Verify entity appears in list
+
+    READ:
+    1. navigate_page to entity detail page
+    2. wait_for data to load
+    3. evaluate to verify correct data shown
+
+    UPDATE:
+    1. navigate_page to entity edit page
+    2. fill_form with updated data
+    3. click submit
+    4. wait_for success
+    5. Verify changes persisted
+
+    DELETE:
+    1. navigate_page to entity page
+    2. click delete button
+    3. handle_dialog to confirm
+    4. wait_for success
+    5. Verify entity removed
+
+    Entities to test: [LIST FROM ROADMAP]
   `
 });
 
-// Agent 3: Workflow Tests
+// Agent 3: Workflow Tests (MCP)
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    Implement workflow tests for [APP_NAME].
+    Test multi-step workflows for [APP_NAME] using Chrome DevTools MCP.
 
     Requirements:
-    - Test multi-step business processes
-    - Verify state transitions
-    - Check step validation
-    - Test completion flows
-    - Follow the pattern from TESTING_STRATEGY.md
+    - Test complete business processes end-to-end
+    - Use fill_form, click, wait_for for step progression
+    - Verify state transitions between steps
+    - Check validation at each step
+    - Document results in tests/workflow-results.md
 
-    Create tests in cypress/e2e/workflows/ directory.
+    For each workflow:
+    1. navigate_page to workflow start
+    2. Complete Step 1 (fill_form, click next)
+    3. wait_for Step 2 to appear
+    4. Complete Step 2
+    5. Continue through all steps
+    6. Verify final completion state
+    7. Take screenshots at key milestones
+
+    Workflows to test: [LIST FROM ROADMAP]
   `
 });
 
-// Agent 4: Interaction Tests
+// Agent 4: Interaction Tests (MCP)
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    Implement interaction tests for [APP_NAME].
+    Test UI interactions for [APP_NAME] using Chrome DevTools MCP.
 
     Requirements:
-    - Test all buttons and clicks
-    - Test form submissions
-    - Test table operations (sort, filter, paginate)
-    - Test dialog interactions
-    - Follow the pattern from TESTING_STRATEGY.md
+    - Test buttons, forms, tables, dialogs
+    - Use click, fill, hover, press_key
+    - Test filtering, sorting, pagination
+    - Verify UI state changes
+    - Document results in tests/interaction-results.md
 
-    Create tests in cypress/e2e/interactions/ directory.
+    For each interaction type:
+    BUTTONS:
+    1. navigate_page to target page
+    2. click each button
+    3. Verify expected action occurred
+
+    FORMS:
+    1. fill_form with various inputs
+    2. Test validation (use fill with invalid data)
+    3. Submit and verify
+
+    TABLES:
+    1. Click column headers to sort
+    2. Use fill for filter inputs
+    3. Click pagination controls
+    4. Verify results change correctly
+
+    DIALOGS:
+    1. click to open dialog
+    2. Interact with dialog content
+    3. handle_dialog or click close
+    4. Verify dialog dismissed
+
+    Components to test: [LIST FROM ROADMAP]
   `
 });
 
-// Agent 5: Edge Case Tests
+// Agent 5: Edge Case Tests (MCP)
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    Implement edge case tests for [APP_NAME].
+    Test edge cases and error scenarios for [APP_NAME] using Chrome DevTools MCP.
 
     Requirements:
-    - Test form validation errors
-    - Test network failures
+    - Test validation errors
     - Test permission restrictions
     - Test boundary conditions
-    - Follow the pattern from TESTING_STRATEGY.md
+    - Test error messages
+    - Document results in tests/edge-cases-results.md
 
-    Create tests in cypress/e2e/edge-cases/ directory.
+    VALIDATION:
+    1. navigate_page to forms
+    2. fill_form with invalid data
+    3. click submit
+    4. wait_for error messages
+    5. Verify correct errors shown
+
+    PERMISSIONS:
+    1. Login as different user roles
+    2. Attempt restricted actions
+    3. Verify access denied appropriately
+
+    ERRORS:
+    1. Simulate network failures (if possible)
+    2. Test with missing data
+    3. Test with extreme values
+    4. Verify graceful error handling
+
+    BOUNDARY CONDITIONS:
+    1. Test with empty lists
+    2. Test with max length inputs
+    3. Test with special characters
+    4. Verify edge cases handled
+
+    Scenarios to test: [LIST FROM ROADMAP]
   `
 });
 ```
 
+**Cypress Approach (Alternative):**
+
+```typescript
+// Same parallel agent strategy, but agents create Cypress test files
+// Agent prompts would specify: "Create tests in cypress/e2e/[category]/ directory"
+// See original skill for Cypress-specific patterns
+```
+
 #### 3.3 Test Pattern Templates
+
+### MCP Test Patterns (Recommended) ⚡
+
+**Navigation Test Pattern:**
+```markdown
+## Testing Navigation: [Module Name]
+
+### Route: /[route-path]
+
+1. **Navigate to page**
+   - Use: navigate_page
+   - URL: http://localhost:3000/[route-path]
+
+2. **Wait for page load**
+   - Use: wait_for
+   - Selector: [data-testid="page-heading"]
+   - Or: h1, .main-content, etc.
+
+3. **Verify content**
+   - Use: evaluate
+   - Check: document.querySelector('[selector]').textContent
+   - Expected: "[Expected Heading]"
+
+4. **Take screenshot**
+   - Use: take_screenshot
+   - Name: "[module]-[page]-loaded.png"
+
+5. **Check console**
+   - Use: review console messages
+   - Verify: No errors
+
+**Example execution:**
+```
+navigate_page http://localhost:3000/properties
+wait_for selector [data-testid="properties-heading"]
+evaluate document.querySelector('[data-testid="properties-heading"]').textContent
+// Should return "Properties"
+take_screenshot "properties-list-loaded.png"
+```
+```
+
+**CRUD Test Pattern:**
+```markdown
+## Testing CRUD: [Entity Name]
+
+### CREATE Operation
+
+1. **Navigate to creation page**
+   - navigate_page http://localhost:3000/[entity]/new
+
+2. **Fill form**
+   - Use: fill_form
+   - Data: {"name": "Test Entity", "field1": "value1", ...}
+
+3. **Submit**
+   - Use: click
+   - Selector: [data-testid="submit-button"]
+
+4. **Wait for success**
+   - Use: wait_for
+   - Selector: .success-message or [data-testid="success"]
+
+5. **Verify creation**
+   - navigate_page to list page
+   - evaluate to find new entity in list
+
+### READ Operation
+
+1. **Navigate to detail page**
+   - navigate_page http://localhost:3000/[entity]/[id]
+
+2. **Wait for data**
+   - wait_for [data-testid="entity-name"]
+
+3. **Verify data**
+   - evaluate document.querySelector('[selector]').textContent
+   - Check all fields displayed correctly
+
+### UPDATE Operation
+
+1. **Navigate to edit page**
+   - navigate_page http://localhost:3000/[entity]/[id]/edit
+
+2. **Fill form with updates**
+   - fill_form {"name": "Updated Name", ...}
+
+3. **Submit**
+   - click [data-testid="submit-button"]
+
+4. **Wait for success**
+   - wait_for .success-message
+
+5. **Verify update**
+   - navigate_page to detail page
+   - evaluate to verify changes persisted
+
+### DELETE Operation
+
+1. **Navigate to entity page**
+   - navigate_page http://localhost:3000/[entity]/[id]
+
+2. **Click delete**
+   - click [data-testid="delete-button"]
+
+3. **Handle confirmation dialog**
+   - handle_dialog accept (or click confirm button)
+
+4. **Wait for success**
+   - wait_for .success-message
+
+5. **Verify deletion**
+   - navigate_page to list page
+   - evaluate to verify entity absent
+
+**Example execution:**
+```
+# CREATE
+navigate_page http://localhost:3000/users/new
+fill_form {"name": "John Doe", "email": "john@test.com"}
+click [data-testid="submit-button"]
+wait_for .success-message
+take_screenshot "user-created.png"
+
+# READ
+navigate_page http://localhost:3000/users/123
+wait_for [data-testid="user-name"]
+evaluate document.querySelector('[data-testid="user-name"]').textContent
+// Should return "John Doe"
+
+# UPDATE
+navigate_page http://localhost:3000/users/123/edit
+fill_form {"name": "Jane Doe"}
+click [data-testid="submit-button"]
+wait_for .success-message
+
+# DELETE
+navigate_page http://localhost:3000/users/123
+click [data-testid="delete-button"]
+handle_dialog accept
+wait_for .success-message
+```
+```
+
+**Workflow Test Pattern:**
+```markdown
+## Testing Workflow: [Workflow Name]
+
+### Multi-Step Process
+
+1. **Start workflow**
+   - navigate_page http://localhost:3000/[workflow]/start
+
+2. **Step 1: [Step Name]**
+   - wait_for selector indicating Step 1
+   - fill_form with Step 1 data
+   - click "Next" button
+   - take_screenshot "workflow-step1.png"
+
+3. **Step 2: [Step Name]**
+   - wait_for Step 2 elements
+   - Verify Step 1 data carried over (evaluate)
+   - fill_form with Step 2 data
+   - click "Next" button
+   - take_screenshot "workflow-step2.png"
+
+4. **Step 3: [Final Step]**
+   - wait_for Step 3 elements
+   - Review summary (evaluate)
+   - click "Complete" button
+
+5. **Verify completion**
+   - wait_for success message
+   - navigate_page to results/confirmation page
+   - evaluate to verify workflow outcome
+   - take_screenshot "workflow-complete.png"
+
+**Example execution:**
+```
+# Onboarding workflow
+navigate_page http://localhost:3000/onboarding/start
+
+# Step 1: Personal Info
+wait_for h2:has-text("Personal Information")
+fill_form {"firstName": "John", "lastName": "Doe", "email": "john@test.com"}
+click button:has-text("Next")
+
+# Step 2: Preferences
+wait_for h2:has-text("Preferences")
+click [data-testid="preference-option-1"]
+click button:has-text("Next")
+
+# Step 3: Review
+wait_for h2:has-text("Review")
+evaluate document.querySelector('.summary').textContent
+// Verify summary contains entered data
+click button:has-text("Complete")
+
+# Verify
+wait_for .success-message
+take_screenshot "onboarding-complete.png"
+```
+```
+
+**Interaction Test Pattern:**
+```markdown
+## Testing Interactions: [Component/Feature]
+
+### Button Click
+1. navigate_page to page with button
+2. click [data-testid="target-button"]
+3. wait_for expected result
+4. evaluate to verify state change
+
+### Form Interaction
+1. navigate_page to form
+2. fill individual fields: fill [selector] with "value"
+3. Or use: fill_form {"field1": "value1", ...}
+4. click submit
+5. wait_for response
+
+### Table Sorting
+1. navigate_page to page with table
+2. click column header: click th:has-text("Name")
+3. evaluate to verify sort order changed
+4. take_screenshot for visual confirmation
+
+### Table Filtering
+1. fill filter input: fill [data-testid="filter-input"] with "search term"
+2. wait_for table to update
+3. evaluate to verify filtered results
+
+### Dialog Interaction
+1. click button that opens dialog
+2. wait_for dialog: wait_for [role="dialog"]
+3. interact with dialog content
+4. click dialog action or handle_dialog
+5. wait_for dialog to close
+
+**Example execution:**
+```
+# Table sorting
+navigate_page http://localhost:3000/users
+click th:has-text("Name")
+evaluate [...document.querySelectorAll('tbody tr td:first-child')].map(td => td.textContent)
+// Verify alphabetical order
+take_screenshot "users-sorted-by-name.png"
+
+# Table filtering
+fill [data-testid="search-input"] with "John"
+wait_for selector tbody tr
+evaluate document.querySelectorAll('tbody tr').length
+// Should be fewer rows
+take_screenshot "users-filtered.png"
+
+# Dialog
+click [data-testid="add-user-button"]
+wait_for [role="dialog"]
+fill_form {"name": "New User", "email": "new@test.com"}
+click button:has-text("Save")
+wait_for selector [role="dialog"]:not(:visible)
+```
+```
+
+### Cypress Test Patterns (Alternative)
 
 **Navigation Test Template:**
 ```typescript
